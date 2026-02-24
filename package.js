@@ -1,30 +1,12 @@
 {
   "name": "indian-phone-locator",
-  "version": "2.0.0",
-  "description": "Indian Phone Number Locator with Discord Bot - NO API KEY REQUIRED! Uses OpenStreetMap",
+  "version": "1.0.0",
+  "description": "Indian Phone Number Locator with Discord Bot - NO API KEY REQUIRED",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
-  "keywords": [
-    "india",
-    "phone",
-    "location",
-    "discord",
-    "bot",
-    "+91",
-    "openstreetmap",
-    "osm",
-    "free",
-    "no-api-key",
-    "gps",
-    "tracker",
-    "std-code",
-    "mobile-operator"
-  ],
-  "author": "mrzappu",
-  "license": "MIT",
   "dependencies": {
     "discord.js": "^14.14.1",
     "express": "^4.18.2",
@@ -36,9 +18,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/mrzappu/gps-phone"
   }
 }
