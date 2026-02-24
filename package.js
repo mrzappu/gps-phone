@@ -1,40 +1,20 @@
 {
-  "name": "indian-phone-locator",
+  "name": "indian-phone-locator-free",
   "version": "1.0.0",
-  "description": "Indian Phone Number Locator with Discord Bot and Google Maps - Supports only +91 numbers",
+  "description": "Indian Phone Locator - NO API KEY REQUIRED! Uses OpenStreetMap",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js",
-    "test": "echo \"Testing Indian phone numbers only\" && exit 0"
+    "dev": "nodemon index.js"
   },
-  "keywords": [
-    "india",
-    "phone",
-    "location",
-    "discord",
-    "bot",
-    "google-maps",
-    "+91",
-    "bharat",
-    "osint"
-  ],
-  "author": "Rebel Dev",
-  "license": "MIT",
   "dependencies": {
     "discord.js": "^14.14.1",
     "express": "^4.18.2",
     "axios": "^1.6.2",
     "dotenv": "^16.3.1",
-    "google-libphonenumber": "^3.2.34",
-    "node-fetch": "^2.7.0",
-    "fs": "^0.0.1-security",
-    "path": "^0.12.7"
+    "leaflet": "^1.9.4"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   }
 }
