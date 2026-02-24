@@ -1,15 +1,13 @@
 // index.js - Indian Phone Locator - NO API KEY REQUIRED!
-// Uses built-in India STD database + OpenStreetMap (FREE)
+// Complete working version for Render deployment
 
 require('dotenv').config();
-const config = require('./config');
 
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const express = require('express');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const http = require('http');
 
 // ============================================
 // SIMPLE LOGGER
@@ -25,25 +23,73 @@ function log(level, ...args) {
 }
 
 // ============================================
+// INDIA DATABASE - COMPLETE STD CODES
+// ============================================
+const INDIA_CITIES = {
+    // METRO CITIES (2-digit STD codes)
+    "11": { city: "Delhi", state: "Delhi", lat: 28.6139, lng: 77.2090, circle: "Delhi NCR", type: "Metro" },
+    "22": { city: "Mumbai", state: "Maharashtra", lat: 19.0760, lng: 72.8777, circle: "Mumbai", type: "Metro" },
+    "33": { city: "Kolkata", state: "West Bengal", lat: 22.5726, lng: 88.3639, circle: "Kolkata", type: "Metro" },
+    "44": { city: "Chennai", state: "Tamil Nadu", lat: 13.0827, lng: 80.2707, circle: "Chennai", type: "Metro" },
+    "80": { city: "Bangalore", state: "Karnataka", lat: 12.9716, lng: 77.5946, circle: "Karnataka", type: "Metro" },
+    "40": { city: "Hyderabad", state: "Telangana", lat: 17.3850, lng: 78.4867, circle: "Andhra Pradesh", type: "Metro" },
+    "20": { city: "Pune", state: "Maharashtra", lat: 18.5204, lng: 73.8567, circle: "Maharashtra", type: "Major City" },
+    "79": { city: "Ahmedabad", state: "Gujarat", lat: 23.0225, lng: 72.5714, circle: "Gujarat", type: "Metro" },
+    
+    // 3-digit STD codes
+    "141": { city: "Jaipur", state: "Rajasthan", lat: 26.9124, lng: 75.7873, circle: "Rajasthan", type: "Major City" },
+    "522": { city: "Lucknow", state: "Uttar Pradesh", lat: 26.8467, lng: 80.9462, circle: "Uttar Pradesh", type: "Major City" },
+    "512": { city: "Kanpur", state: "Uttar Pradesh", lat: 26.4499, lng: 80.3319, circle: "Uttar Pradesh", type: "Major City" },
+    "712": { city: "Nagpur", state: "Maharashtra", lat: 21.1458, lng: 79.0882, circle: "Maharashtra", type: "Major City" },
+    "731": { city: "Indore", state: "Madhya Pradesh", lat: 22.7196, lng: 75.8577, circle: "Madhya Pradesh", type: "Major City" },
+    "755": { city: "Bhopal", state: "Madhya Pradesh", lat: 23.2599, lng: 77.4126, circle: "Madhya Pradesh", type: "Major City" },
+    "612": { city: "Patna", state: "Bihar", lat: 25.5941, lng: 85.1376, circle: "Bihar", type: "Major City" },
+    "461": { city: "Tiruchirappalli", state: "Tamil Nadu", lat: 10.7905, lng: 78.7047, circle: "Tamil Nadu", type: "City" },
+    "471": { city: "Thiruvananthapuram", state: "Kerala", lat: 8.5241, lng: 76.9366, circle: "Kerala", type: "Major City" },
+    "484": { city: "Kochi", state: "Kerala", lat: 9.9312, lng: 76.2673, circle: "Kerala", type: "Major City" },
+    "422": { city: "Coimbatore", state: "Tamil Nadu", lat: 11.0168, lng: 76.9558, circle: "Tamil Nadu", type: "Major City" },
+    "431": { city: "Madurai", state: "Tamil Nadu", lat: 9.9252, lng: 78.1198, circle: "Tamil Nadu", type: "Major City" },
+    "413": { city: "Puducherry", state: "Puducherry", lat: 11.9416, lng: 79.8083, circle: "Tamil Nadu", type: "City" },
+    "821": { city: "Mysore", state: "Karnataka", lat: 12.2958, lng: 76.6394, circle: "Karnataka", type: "City" },
+    "832": { city: "Mangalore", state: "Karnataka", lat: 12.9141, lng: 74.8560, circle: "Karnataka", type: "City" },
+    "891": { city: "Visakhapatnam", state: "Andhra Pradesh", lat: 17.6868, lng: 83.2185, circle: "Andhra Pradesh", type: "Major City" },
+    "863": { city: "Guntur", state: "Andhra Pradesh", lat: 16.3067, lng: 80.4365, circle: "Andhra Pradesh", type: "City" },
+    "866": { city: "Tirupati", state: "Andhra Pradesh", lat: 13.6288, lng: 79.4192, circle: "Andhra Pradesh", type: "City" },
+    "5422": { city: "Varanasi", state: "Uttar Pradesh", lat: 25.3176, lng: 82.9739, circle: "Uttar Pradesh", type: "City" },
+    "562": { city: "Agra", state: "Uttar Pradesh", lat: 27.1767, lng: 78.0081, circle: "Uttar Pradesh", type: "City" },
+    "751": { city: "Gwalior", state: "Madhya Pradesh", lat: 26.2183, lng: 78.1828, circle: "Madhya Pradesh", type: "City" },
+    "761": { city: "Jabalpur", state: "Madhya Pradesh", lat: 23.1815, lng: 79.9864, circle: "Madhya Pradesh", type: "City" },
+    "781": { city: "Raipur", state: "Chhattisgarh", lat: 21.2514, lng: 81.6296, circle: "Chhattisgarh", type: "Major City" },
+    "836": { city: "Hubli", state: "Karnataka", lat: 15.3647, lng: 75.1240, circle: "Karnataka", type: "City" }
+};
+
+const OPERATORS = {
+    "70": "Reliance Jio", "71": "Reliance Jio", "72": "Reliance Jio", "73": "Reliance Jio",
+    "74": "Reliance Jio", "75": "Reliance Jio", "76": "Reliance Jio", "77": "Reliance Jio",
+    "78": "Reliance Jio", "79": "Reliance Jio",
+    "80": "Airtel", "81": "Airtel", "82": "Airtel", "83": "Airtel",
+    "84": "Airtel", "85": "Airtel", "86": "Airtel", "87": "Airtel", "88": "Airtel", "89": "Airtel",
+    "90": "Vodafone Idea", "91": "Vodafone Idea", "92": "Vodafone Idea", "93": "Vodafone Idea",
+    "94": "Vodafone Idea", "95": "Vodafone Idea", "96": "Vodafone Idea", "97": "Vodafone Idea",
+    "98": "Vodafone Idea", "99": "Vodafone Idea"
+};
+
+// ============================================
 // INDIAN NUMBER VALIDATOR
 // ============================================
 function validateIndianNumber(phoneNumber) {
     try {
-        // Clean the number
         let clean = phoneNumber.replace(/[\s\-\(\)]/g, '');
         
-        // Extract 10-digit number
         let number = clean;
         if (clean.startsWith('+91')) number = clean.substring(3);
         else if (clean.startsWith('91')) number = clean.substring(2);
         else if (clean.startsWith('0')) number = clean.substring(1);
         
-        // Must be 10 digits
         if (!/^\d{10}$/.test(number)) {
             return { valid: false, reason: 'Must be 10 digits' };
         }
         
-        // First digit must be 6,7,8,9
         if (!['6','7','8','9'].includes(number[0])) {
             return { valid: false, reason: 'Must start with 6,7,8,9' };
         }
@@ -55,7 +101,7 @@ function validateIndianNumber(phoneNumber) {
 }
 
 // ============================================
-// INDIAN NUMBER ANALYZER (NO API KEYS!)
+// ANALYZE FUNCTION
 // ============================================
 function analyzeIndianNumber(phoneInput) {
     log('INFO', `Analyzing: ${phoneInput}`);
@@ -67,24 +113,24 @@ function analyzeIndianNumber(phoneInput) {
     
     const { number, formatted } = validation;
     
-    // Extract STD code (for landline detection)
+    // Extract STD code
     let stdCode = '';
     let cityData = null;
     
     // Check for 4-digit STD first
-    if (config.india.cities[number.substring(0, 4)]) {
+    if (INDIA_CITIES[number.substring(0, 4)]) {
         stdCode = number.substring(0, 4);
-        cityData = config.india.cities[stdCode];
+        cityData = INDIA_CITIES[stdCode];
     }
     // Then 3-digit
-    else if (config.india.cities[number.substring(0, 3)]) {
+    else if (INDIA_CITIES[number.substring(0, 3)]) {
         stdCode = number.substring(0, 3);
-        cityData = config.india.cities[stdCode];
+        cityData = INDIA_CITIES[stdCode];
     }
     // Then 2-digit
-    else if (config.india.cities[number.substring(0, 2)]) {
+    else if (INDIA_CITIES[number.substring(0, 2)]) {
         stdCode = number.substring(0, 2);
-        cityData = config.india.cities[stdCode];
+        cityData = INDIA_CITIES[stdCode];
     }
     
     // Determine operator
@@ -92,28 +138,23 @@ function analyzeIndianNumber(phoneInput) {
     const firstThree = number.substring(0, 3);
     let operator = 'Unknown';
     
-    if (config.india.operators[firstTwo]) operator = config.india.operators[firstTwo];
-    else if (config.india.operators[firstThree]) operator = config.india.operators[firstThree];
+    if (OPERATORS[firstTwo]) operator = OPERATORS[firstTwo];
+    else if (OPERATORS[firstThree]) operator = OPERATORS[firstThree];
     
     // Number type
     let numberType = 'Mobile';
     if (number.startsWith('1800')) numberType = 'Toll Free';
     else if (number.startsWith('1860')) numberType = 'Toll Free';
-    else if (number.startsWith('140')) numberType = 'Telemarketing';
     else if (operator !== 'Unknown') numberType = operator;
     
-    // Build result
     return {
         success: true,
-        valid: true,
         phoneNumber: {
             raw: phoneInput,
             clean: number,
             formatted: formatted,
             international: `+91 ${number.substring(0,5)} ${number.substring(5)}`,
-            national: `0${number}`,
-            countryCode: '91',
-            country: 'India'
+            national: `0${number}`
         },
         location: {
             city: cityData ? cityData.city : 'Unknown',
@@ -121,30 +162,22 @@ function analyzeIndianNumber(phoneInput) {
             circle: cityData ? cityData.circle : 'Unknown',
             stdCode: stdCode || 'N/A',
             coordinates: cityData ? { lat: cityData.lat, lng: cityData.lng } : null,
-            type: numberType,
             operator: operator,
-            cityType: cityData ? cityData.type : 'Unknown'
+            type: numberType
         },
         maps: {
-            // OpenStreetMap URL (FREE - no API key!)
             url: cityData ? 
                 `https://www.openstreetmap.org/?mlat=${cityData.lat}&mlon=${cityData.lng}#map=12/${cityData.lat}/${cityData.lng}` : 
                 null,
-            // Static map image via staticmap.org (FREE)
             staticImage: cityData ?
-                `https://staticmap.openstreetmap.de/staticmap.php?center=${cityData.lat},${cityData.lng}&zoom=12&size=800x400&markers=${cityData.lat},${cityData.lng},red` :
-                null,
-            // Embed URL
-            embedUrl: cityData ?
-                `https://www.openstreetmap.org/export/embed.html?bbox=${cityData.lng-0.1}%2C${cityData.lat-0.1}%2C${cityData.lng+0.1}%2C${cityData.lat+0.1}&layer=mapnik&marker=${cityData.lat}%2C${cityData.lng}` :
+                `https://staticmap.openstreetmap.de/staticmap.php?center=${cityData.lat},${cityData.lng}&zoom=12&size=600x300&markers=${cityData.lat},${cityData.lng},red` :
                 null
-        },
-        timestamp: new Date().toISOString()
+        }
     };
 }
 
 // ============================================
-// DISCORD BOT
+// DISCORD BOT SETUP
 // ============================================
 const discordClient = new Client({
     intents: [
@@ -155,386 +188,116 @@ const discordClient = new Client({
 });
 
 discordClient.once('ready', () => {
-    log('INFO', `✅ Discord bot logged in as ${discordClient.user.tag}`);
-    discordClient.user.setActivity('!locate +91XXXXXXXXXX | 🇮🇳 No API Key', { type: 'LISTENING' });
+    log('INFO', `✅ Bot logged in as ${discordClient.user.tag}`);
+    discordClient.user.setActivity('!locate +91XXXXXXXXXX', { type: 'LISTENING' });
 });
 
 discordClient.on('messageCreate', async (message) => {
     if (message.author.bot) return;
-    if (config.discord.channelId && message.channel.id !== config.discord.channelId) return;
+    if (process.env.DISCORD_CHANNEL_ID && message.channel.id !== process.env.DISCORD_CHANNEL_ID) return;
     
-    const prefix = config.discord.commandPrefix;
-    if (!message.content.startsWith(prefix)) return;
+    if (!message.content.startsWith('!')) return;
     
-    const args = message.content.slice(prefix.length).trim().split(/\s+/);
+    const args = message.content.slice(1).trim().split(/\s+/);
     const command = args.shift().toLowerCase();
     
-    // ===== LOCATE COMMAND =====
-    if (command === 'locate' || command === 'track' || command === 'find') {
+    if (command === 'locate' || command === 'track') {
         if (args.length < 1) {
-            return message.reply({
-                embeds: [new EmbedBuilder()
-                    .setColor(0xFF0000)
-                    .setTitle('❌ Missing Phone Number')
-                    .setDescription('Usage: `!locate +91XXXXXXXXXX`\nExample: `!locate +919876543210`')
-                    .setFooter({ text: '🇮🇳 Indian numbers only | No API key needed!' })
-                ]
-            });
+            return message.reply('Usage: `!locate +919876543210`');
         }
         
-        const phoneNumber = args[0];
-        
-        // Send typing indicator
         await message.channel.sendTyping();
         
-        const processingMsg = await message.reply({
-            embeds: [new EmbedBuilder()
-                .setColor(0xFFA500)
-                .setTitle('🔍 Analyzing Indian Number')
-                .setDescription(`Looking up **${phoneNumber}**...`)
-                .setFooter({ text: 'Using local India database | 100% free' })
-            ]
-        });
-        
-        // Analyze
-        const result = analyzeIndianNumber(phoneNumber);
+        const result = analyzeIndianNumber(args[0]);
         
         if (!result.success) {
-            return await processingMsg.edit({
-                embeds: [new EmbedBuilder()
-                    .setColor(0xFF0000)
-                    .setTitle('❌ Invalid Indian Number')
-                    .setDescription(`Error: ${result.error}`)
-                    .addFields({ name: '✅ Valid Format', value: '+91 98765 43210\n919876543210\n9876543210' })
-                ]
-            });
+            return message.reply(`❌ Error: ${result.error}`);
         }
         
-        // Build embed
         const embed = new EmbedBuilder()
             .setColor(0x00FF00)
-            .setTitle('🇮🇳 Indian Phone Number Report')
+            .setTitle('🇮🇳 Indian Phone Report')
             .setDescription(`Results for **${result.phoneNumber.formatted}**`)
             .addFields(
-                {
-                    name: '📞 Number Details',
-                    value: [
-                        `**Number:** ${result.phoneNumber.international}`,
-                        `**National:** ${result.phoneNumber.national}`,
-                        `**Operator:** ${result.location.operator}`,
-                        `**Type:** ${result.location.type}`
-                    ].join('\n'),
-                    inline: true
-                },
-                {
-                    name: '📍 Location',
-                    value: [
-                        `**City:** ${result.location.city}`,
-                        `**State:** ${result.location.state}`,
-                        `**Circle:** ${result.location.circle}`,
-                        `**STD Code:** ${result.location.stdCode}`
-                    ].join('\n'),
-                    inline: true
-                }
+                { name: '📞 Number', value: result.phoneNumber.international, inline: true },
+                { name: '📱 Operator', value: result.location.operator, inline: true },
+                { name: '📍 City', value: result.location.city, inline: true },
+                { name: '🗺️ State', value: result.location.state, inline: true },
+                { name: '📡 Circle', value: result.location.circle, inline: true },
+                { name: '🔢 STD', value: result.location.stdCode, inline: true }
             )
-            .setTimestamp()
-            .setFooter({ 
-                text: '🇮🇳 Indian Phone Locator | No API Key Required | OpenStreetMap',
-                iconURL: discordClient.user.displayAvatarURL() 
-            });
+            .setTimestamp();
         
-        // Add coordinates if available
-        if (result.location.coordinates) {
-            embed.addFields({
-                name: '🗺️ Coordinates',
-                value: `**Lat:** ${result.location.coordinates.lat}\n**Lng:** ${result.location.coordinates.lng}\n[View on OpenStreetMap](${result.maps.url})`,
-                inline: false
-            });
-        }
-        
-        await processingMsg.delete();
         await message.channel.send({ embeds: [embed] });
         
-        // Send static map if available
         if (result.maps.staticImage) {
             try {
-                const response = await axios.get(result.maps.staticImage, { 
-                    responseType: 'arraybuffer',
-                    timeout: 5000 
-                });
-                
+                const response = await axios.get(result.maps.staticImage, { responseType: 'arraybuffer' });
                 await message.channel.send({
-                    content: '🗺️ **Map Location (OpenStreetMap):**',
                     files: [{
                         attachment: Buffer.from(response.data),
-                        name: `india-${result.phoneNumber.clean}.png`
+                        name: 'map.png'
                     }]
                 });
-            } catch (mapError) {
-                log('DEBUG', 'Map image error:', mapError.message);
-                // Send OSM link as fallback
-                if (result.maps.url) {
-                    await message.channel.send(`🗺️ **View Map:** ${result.maps.url}`);
-                }
+            } catch (e) {
+                if (result.maps.url) await message.channel.send(`🗺️ Map: ${result.maps.url}`);
             }
-        } else if (result.maps.url) {
-            await message.channel.send(`🗺️ **View Map:** ${result.maps.url}`);
         }
-        
-        log('INFO', `✅ Processed ${phoneNumber} for ${message.author.tag}`);
     }
     
-    // ===== HELP COMMAND =====
-    else if (command === 'help') {
-        const helpEmbed = new EmbedBuilder()
+    if (command === 'help') {
+        const embed = new EmbedBuilder()
             .setColor(0x0099FF)
-            .setTitle('🇮🇳 Indian Phone Locator - Help')
-            .setDescription('**NO API KEY REQUIRED!** 100% Free using OpenStreetMap')
-            .addFields(
-                { name: '!locate +91XXXXXXXXXX', value: 'Locate an Indian number\nExample: `!locate +919876543210`' },
-                { name: '!cities', value: 'Show all supported Indian cities' },
-                { name: '!operators', value: 'Show Indian mobile operators' },
-                { name: '!circles', value: 'Show telecom circles' },
-                { name: '!stats', value: 'Bot statistics' },
-                { name: '!about', value: 'About this bot' }
-            )
-            .setFooter({ text: 'Powered by OpenStreetMap | No Google API needed!' });
-        
-        await message.channel.send({ embeds: [helpEmbed] });
-    }
-    
-    // ===== CITIES COMMAND =====
-    else if (command === 'cities') {
-        const cities = Object.values(config.india.cities)
-            .map(c => `${c.city} (${c.state})`)
-            .slice(0, 25)
-            .join('\n');
-        
-        await message.channel.send({
-            embeds: [new EmbedBuilder()
-                .setColor(0x0099FF)
-                .setTitle('🏙️ Supported Indian Cities')
-                .setDescription(cities)
-                .setFooter({ text: `${Object.keys(config.india.cities).length} cities in database` })
-            ]
-        });
-    }
-    
-    // ===== OPERATORS COMMAND =====
-    else if (command === 'operators') {
-        const operators = {
-            'Reliance Jio': '70-79',
-            'Airtel': '80-89',
-            'Vodafone Idea': '90-99',
-            'BSNL': '60-69'
-        };
-        
-        const opText = Object.entries(operators)
-            .map(([op, prefix]) => `**${op}:** ${prefix}`)
-            .join('\n');
-        
-        await message.channel.send({
-            embeds: [new EmbedBuilder()
-                .setColor(0x0099FF)
-                .setTitle('📱 Indian Mobile Operators')
-                .setDescription(opText)
-            ]
-        });
-    }
-    
-    // ===== CIRCLES COMMAND =====
-    else if (command === 'circles') {
-        await message.channel.send({
-            embeds: [new EmbedBuilder()
-                .setColor(0x0099FF)
-                .setTitle('📡 Indian Telecom Circles')
-                .setDescription(config.india.circles.slice(0, 25).join('\n'))
-            ]
-        });
-    }
-    
-    // ===== STATS COMMAND =====
-    else if (command === 'stats') {
-        await message.channel.send({
-            embeds: [new EmbedBuilder()
-                .setColor(0x0099FF)
-                .setTitle('📊 Bot Statistics')
-                .addFields(
-                    { name: 'Cities in DB', value: Object.keys(config.india.cities).length.toString(), inline: true },
-                    { name: 'Operators', value: Object.keys(config.india.operators).length.toString(), inline: true },
-                    { name: 'Circles', value: config.india.circles.length.toString(), inline: true },
-                    { name: 'Uptime', value: `${Math.floor(process.uptime() / 60)} minutes`, inline: true },
-                    { name: 'API Keys', value: '✅ NONE!', inline: true },
-                    { name: 'Maps', value: 'OpenStreetMap', inline: true }
-                )
-                .setFooter({ text: '100% Free | No Google billing!' })
-            ]
-        });
-    }
-    
-    // ===== ABOUT COMMAND =====
-    else if (command === 'about') {
-        await message.channel.send({
-            embeds: [new EmbedBuilder()
-                .setColor(0x0099FF)
-                .setTitle('🇮🇳 About Indian Phone Locator')
-                .setDescription('**NO API KEY REQUIRED!**')
-                .addFields(
-                    { name: 'Features', value: '• Indian numbers only (+91)\n• Built-in STD database\n• Mobile operator detection\n• OpenStreetMap integration\n• 100% FREE - No billing!' },
-                    { name: 'Data Source', value: 'Local India STD database + OpenStreetMap' },
-                    { name: '⚠️ Disclaimer', value: 'For educational purposes only. Respect privacy laws.' }
-                )
-            ]
-        });
+            .setTitle('🇮🇳 Commands')
+            .setDescription('`!locate +91xxxxxxxxxx` - Locate Indian number\n`!help` - This help\n`!stats` - Bot stats');
+        await message.channel.send({ embeds: [embed] });
     }
 });
 
 // ============================================
-// EXPRESS WEB SERVER (with OpenStreetMap iframe)
+// EXPRESS WEB SERVER
 // ============================================
 const app = express();
-app.use(express.json());
-app.use(express.static('public'));
+const PORT = process.env.PORT || 3000;
 
-// Health check
 app.get('/', (req, res) => {
-    res.json({
-        status: 'online',
-        service: 'Indian Phone Locator - NO API KEY!',
-        version: '2.0.0',
-        features: ['Indian numbers only', 'OpenStreetMap', '100% free'],
-        discord: discordClient.isReady() ? 'connected' : 'disconnected',
-        stats: {
-            cities: Object.keys(config.india.cities).length,
-            operators: Object.keys(config.india.operators).length
-        },
-        timestamp: new Date().toISOString()
+    res.json({ 
+        status: 'online', 
+        bot: 'Indian Phone Locator',
+        features: ['No API Key', 'OpenStreetMap', 'Free'],
+        discord: discordClient.isReady() ? 'connected' : 'disconnected'
     });
 });
 
-// API endpoint (no auth needed for demo)
 app.get('/api/locate', (req, res) => {
     const phone = req.query.phone;
-    if (!phone) {
-        return res.status(400).json({ error: 'Missing phone parameter' });
-    }
-    
-    const result = analyzeIndianNumber(phone);
-    res.json(result);
+    if (!phone) return res.status(400).json({ error: 'Missing phone' });
+    res.json(analyzeIndianNumber(phone));
 });
 
-// Web interface with OpenStreetMap
 app.get('/web', (req, res) => {
     res.send(`
         <!DOCTYPE html>
         <html>
-        <head>
-            <title>Indian Phone Locator - FREE</title>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-            <style>
-                body { font-family: Arial; max-width: 1000px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
-                .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-                h1 { color: #FF9933; border-bottom: 3px solid #138808; padding-bottom: 10px; }
-                .flag { font-size: 48px; text-align: center; margin: 20px 0; }
-                input, button { padding: 12px; margin: 5px; font-size: 16px; }
-                input { width: 300px; border: 2px solid #ddd; border-radius: 5px; }
-                button { background: #FF9933; color: white; border: none; border-radius: 5px; cursor: pointer; }
-                button:hover { background: #FF8000; }
-                #map { height: 400px; width: 100%; margin-top: 20px; border-radius: 10px; display: none; }
-                #result { margin-top: 20px; padding: 20px; border-radius: 5px; display: none; }
-                .success { background: #d4edda; border: 1px solid #c3e6cb; }
-                .error { background: #f8d7da; border: 1px solid #f5c6cb; }
-                .free-badge { background: #28a745; color: white; padding: 5px 10px; border-radius: 20px; font-size: 14px; display: inline-block; }
-                .note { color: #666; font-size: 14px; margin-top: 20px; }
-            </style>
+        <head><title>Indian Phone Locator</title>
+        <style>
+            body{font-family:Arial;max-width:800px;margin:50px auto;padding:20px}
+            input,button{padding:10px;margin:5px}
+            #result{margin-top:20px}
+        </style>
         </head>
         <body>
-            <div class="container">
-                <div class="flag">🇮🇳</div>
-                <h1>Indian Phone Number Locator</h1>
-                <p><span class="free-badge">✅ NO API KEY REQUIRED!</span> <span class="free-badge">🗺️ OpenStreetMap</span></p>
-                <p>Enter an Indian phone number (+91)</p>
-                
-                <input type="text" id="phone" placeholder="+91 98765 43210" value="+91">
-                <button onclick="locate()">Locate Number</button>
-                
-                <div id="result"></div>
-                <div id="map"></div>
-                
-                <div class="note">
-                    <strong>Supported formats:</strong> +919876543210, 919876543210, 9876543210<br>
-                    <strong>Data:</strong> Local India STD database + OpenStreetMap (free tiles)<br>
-                    <strong>Note:</strong> 100% free - no Google billing required!
-                </div>
-            </div>
-            
+            <h1>🇮🇳 Indian Phone Locator</h1>
+            <p>No API Key Required - Free OpenStreetMap</p>
+            <input id="phone" placeholder="+919876543210" value="+91">
+            <button onclick="locate()">Locate</button>
+            <pre id="result"></pre>
             <script>
-                let map = null;
-                let marker = null;
-                
-                async function locate() {
-                    const phone = document.getElementById('phone').value;
-                    const resultDiv = document.getElementById('result');
-                    const mapDiv = document.getElementById('map');
-                    
-                    if (!phone) {
-                        alert('Please enter a phone number');
-                        return;
-                    }
-                    
-                    resultDiv.style.display = 'block';
-                    resultDiv.className = '';
-                    resultDiv.innerHTML = 'Searching...';
-                    
-                    try {
-                        const response = await fetch('/api/locate?phone=' + encodeURIComponent(phone));
-                        const data = await response.json();
-                        
-                        if (data.error) {
-                            resultDiv.className = 'error';
-                            resultDiv.innerHTML = '<h3>❌ Error</h3><p>' + data.error + '</p>';
-                            mapDiv.style.display = 'none';
-                        } else {
-                            resultDiv.className = 'success';
-                            resultDiv.innerHTML = \`
-                                <h3>✅ Results</h3>
-                                <p><strong>Number:</strong> \${data.phoneNumber.international}</p>
-                                <p><strong>Operator:</strong> \${data.location.operator}</p>
-                                <p><strong>City:</strong> \${data.location.city}</p>
-                                <p><strong>State:</strong> \${data.location.state}</p>
-                                <p><strong>Circle:</strong> \${data.location.circle}</p>
-                                <p><strong>Coordinates:</strong> \${data.location.coordinates ? data.location.coordinates.lat + ', ' + data.location.coordinates.lng : 'Unknown'}</p>
-                                <p><strong>STD Code:</strong> \${data.location.stdCode}</p>
-                            \`;
-                            
-                            if (data.location.coordinates) {
-                                const lat = data.location.coordinates.lat;
-                                const lng = data.location.coordinates.lng;
-                                
-                                mapDiv.style.display = 'block';
-                                
-                                if (!map) {
-                                    map = L.map('map').setView([lat, lng], 12);
-                                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                        attribution: '© OpenStreetMap contributors'
-                                    }).addTo(map);
-                                    marker = L.marker([lat, lng]).addTo(map).bindPopup(data.location.city).openPopup();
-                                } else {
-                                    map.setView([lat, lng], 12);
-                                    if (marker) map.removeLayer(marker);
-                                    marker = L.marker([lat, lng]).addTo(map).bindPopup(data.location.city).openPopup();
-                                }
-                            } else {
-                                mapDiv.style.display = 'none';
-                            }
-                        }
-                    } catch (error) {
-                        resultDiv.className = 'error';
-                        resultDiv.innerHTML = '<h3>❌ Error</h3><p>' + error.message + '</p>';
-                    }
+                async function locate(){
+                    const phone=document.getElementById('phone').value;
+                    const res=await fetch('/api/locate?phone='+phone);
+                    const data=await res.json();
+                    document.getElementById('result').innerHTML=JSON.stringify(data,null,2);
                 }
             </script>
         </body>
@@ -543,41 +306,14 @@ app.get('/web', (req, res) => {
 });
 
 // ============================================
-// START THE APPLICATION
+// START SERVER
 // ============================================
-async function startApp() {
-    try {
-        // Start Express
-        const server = app.listen(config.server.port, '0.0.0.0', () => {
-            log('INFO', `🌐 Web server: http://localhost:${config.server.port}`);
-            log('INFO', `🌐 Web interface: http://localhost:${config.server.port}/web`);
-        });
-        
-        // Login to Discord
-        await discordClient.login(config.discord.token);
-        log('INFO', '✅ Discord bot connected');
-        log('INFO', '🎉 Indian Phone Locator - NO API KEY VERSION! 🇮🇳');
-        log('INFO', `📊 Cities in DB: ${Object.keys(config.india.cities).length}`);
-        log('INFO', `📊 Operators: ${Object.keys(config.india.operators).length}`);
-        
-    } catch (error) {
-        log('ERROR', 'Failed to start:', error.message);
-        process.exit(1);
-    }
-}
-
-// Graceful shutdown
-process.on('SIGINT', () => {
-    log('INFO', '👋 Shutting down...');
-    discordClient.destroy();
-    process.exit(0);
+app.listen(PORT, '0.0.0.0', () => {
+    log('INFO', `✅ Web server on port ${PORT}`);
 });
 
-process.on('SIGTERM', () => {
-    log('INFO', '👋 Shutting down...');
-    discordClient.destroy();
-    process.exit(0);
+discordClient.login(process.env.DISCORD_BOT_TOKEN).catch(e => {
+    log('ERROR', 'Discord login failed:', e.message);
 });
 
-// Start
-startApp();
+log('INFO', '🚀 Indian Phone Locator starting...');
