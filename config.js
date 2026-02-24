@@ -1,8 +1,8 @@
-// config.js - Indian Phone + IP Locator Configuration
+// config.js - Indian Phone + IP Locator with Location Stand
 require('dotenv').config();
 
 // ============================================
-// COMPLETE INDIAN CITIES DATABASE (ALL STD CODES)
+// COMPLETE INDIAN CITIES DATABASE
 // ============================================
 const INDIA_CITIES = {
     // METRO CITIES (2-digit STD)
@@ -87,28 +87,23 @@ const OPERATORS = {
 // IP GEOLOCATION CONFIGURATION (FREE!)
 // ============================================
 const IP_CONFIG = {
-    // IP-API.com - FREE, no API key required, 45 requests/min [citation:3][citation:6]
     provider: 'ip-api.com',
     endpoint: 'http://ip-api.com/json/',
     fields: 'status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,mobile,proxy,query',
-    // Rate limit: 45 requests per minute from same IP [citation:3]
-    rateLimit: 45,
-    // Alternative if you want higher limits (requires free signup) [citation:10]
-    // iplocate.io: 1000 free requests/day with API key [citation:10]
-    alternatives: {
-        ipinfo: {
-            name: 'IPinfo Lite',
-            endpoint: 'https://ipinfo.io/',
-            signup: 'https://ipinfo.io/signup',
-            limit: 'Unlimited country-level data [citation:4]'
-        },
-        iplocate: {
-            name: 'IPLocate.io',
-            endpoint: 'https://www.iplocate.io/api/lookup/',
-            signup: 'https://iplocate.io/signup',
-            limit: '1000 free requests/day [citation:10]'
-        }
-    }
+    rateLimit: 45
+};
+
+// ============================================
+// LOCATION STAND CONFIGURATION (NEW!)
+// ============================================
+const LOCATION_STAND_CONFIG = {
+    enabled: true,
+    maxHistory: 10,              // Keep last 10 locations
+    saveToFile: true,             // Save to JSON file for persistence
+    filePath: './data/location-history.json',
+    showInDiscord: true,          // Show last seen in Discord
+    showInWeb: true,              // Show last seen in web interface
+    discordChannel: process.env.DISCORD_STAND_CHANNEL_ID || null // Optional separate channel for stand
 };
 
 // ============================================
@@ -117,8 +112,9 @@ const IP_CONFIG = {
 const DISCORD_CONFIG = {
     token: process.env.DISCORD_BOT_TOKEN,
     channelId: process.env.DISCORD_CHANNEL_ID,
+    standChannelId: process.env.DISCORD_STAND_CHANNEL_ID || process.env.DISCORD_CHANNEL_ID,
     prefix: '!',
-    status: '!locate +91 | !ip 1.1.1.1',
+    status: '!locate +91 | !ip | !stand',
     intents: {
         guilds: true,
         messages: true,
@@ -127,12 +123,15 @@ const DISCORD_CONFIG = {
     embed: {
         phoneColor: 0x00FF00,
         ipColor: 0x0099FF,
+        standColor: 0xFFA500,
         errorColor: 0xFF0000,
-        footer: '🇮🇳 Indian Phone + IP Locator | FREE'
+        footer: '🇮🇳 Indian Phone + IP Locator | Location Stand v3.0'
     },
     commands: {
         phone: ['locate', 'phone', 'call', 'track'],
         ip: ['ip', 'iplocate', 'whereis', 'geo'],
+        stand: ['stand', 'last', 'history', 'recent', 'lastseen'],
+        clear: ['clearstand', 'clearhistory', 'reset'],
         help: ['help', 'commands'],
         stats: ['stats', 'status']
     }
@@ -153,6 +152,7 @@ module.exports = {
     discord: DISCORD_CONFIG,
     server: SERVER_CONFIG,
     ip: IP_CONFIG,
+    locationStand: LOCATION_STAND_CONFIG,
     india: {
         cities: INDIA_CITIES,
         operators: OPERATORS,
