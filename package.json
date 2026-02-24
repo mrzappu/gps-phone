@@ -1,7 +1,7 @@
 {
-  "name": "indian-phone-locator",
-  "version": "1.0.0",
-  "description": "Indian Phone Number Locator with Discord Bot - NO API KEY REQUIRED!",
+  "name": "indian-phone-ip-locator",
+  "version": "3.0.0",
+  "description": "Indian Phone + IP Locator with Last Seen Location Stand - FREE, no API keys!",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
