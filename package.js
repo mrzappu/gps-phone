@@ -1,20 +1,18 @@
 {
-  "name": "indian-phone-locator-free",
+  "name": "indian-phone-locator",
   "version": "1.0.0",
-  "description": "Indian Phone Locator - NO API KEY REQUIRED! Uses OpenStreetMap",
+  "description": "Indian Phone Number Locator",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "discord.js": "^14.14.1",
     "express": "^4.18.2",
     "axios": "^1.6.2",
-    "dotenv": "^16.3.1",
-    "leaflet": "^1.9.4"
+    "dotenv": "^16.3.1"
   },
-  "devDependencies": {
-    "nodemon": "^3.0.2"
+  "engines": {
+    "node": "18.x"
   }
 }
