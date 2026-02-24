@@ -1,6 +1,6 @@
 {
   "name": "indian-phone-locator",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Indian Phone Number Locator with Discord Bot - NO API KEY REQUIRED! Uses OpenStreetMap",
   "main": "index.js",
   "scripts": {
@@ -19,7 +19,9 @@
     "free",
     "no-api-key",
     "gps",
-    "tracker"
+    "tracker",
+    "std-code",
+    "mobile-operator"
   ],
   "author": "mrzappu",
   "license": "MIT",
@@ -34,5 +36,9 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mrzappu/gps-phone"
   }
 }
